@@ -269,6 +269,7 @@ public class FreeMarkerLoginFormsProvider implements LoginFormsProvider {
                 TotpBean totpBean = new TotpBean(session, realm, user, getTotpUriBuilder(), authenticationSession.getAuthNote(Constants.TOTP_SECRET_KEY));
                 authenticationSession.setAuthNote(Constants.TOTP_SECRET_KEY, totpBean.getTotpSecret());
                 attributes.put("totp", totpBean);
+                setPageTitleIfDefined("loginConfigTotpPageTitle", messagesBundle, locale);
                 break;
             case LOGIN_RECOVERY_AUTHN_CODES_CONFIG:
                 // generate the recovery codes and assign to the auth session
@@ -276,9 +277,11 @@ public class FreeMarkerLoginFormsProvider implements LoginFormsProvider {
                 attributes.put("recoveryAuthnCodesConfigBean", recoveryAuthnCodesBean);
                 authenticationSession.setAuthNote(RecoveryAuthnCodesFormAuthenticator.GENERATED_RECOVERY_AUTHN_CODES_NOTE, recoveryAuthnCodesBean.getGeneratedRecoveryAuthnCodesAsString());
                 authenticationSession.setAuthNote(RecoveryAuthnCodesFormAuthenticator.GENERATED_AT_NOTE, Long.toString(recoveryAuthnCodesBean.getGeneratedAt()));
+                setPageTitleIfDefined("loginRecoveryAuthnCodeConfigPageTitle", messagesBundle, locale);
                 break;
             case LOGIN_RECOVERY_AUTHN_CODES_INPUT:
                 attributes.put("recoveryAuthnCodesInputBean", new RecoveryAuthnCodeInputLoginBean(session, realm, user));
+                setPageTitleIfDefined("loginRecoveryAuthnCodeInputPageTitle", messagesBundle, locale);
                 break;
             case LOGIN_UPDATE_PROFILE:
                 attributes.put("profile", new VerifyProfileBean(user, formData, session));
@@ -308,9 +311,11 @@ public class FreeMarkerLoginFormsProvider implements LoginFormsProvider {
                 break;
             case LOGIN_TOTP:
                 attributes.put("otpLogin", new TotpLoginBean(session, realm, user, (String) this.attributes.get(OTPFormAuthenticator.SELECTED_OTP_CREDENTIAL_ID)));
+                setPageTitleIfDefined("loginOtpPageTitle", messagesBundle, locale);
                 break;
             case LOGIN_RESET_OTP:
                 attributes.put("configuredOtpCredentials", new TotpLoginBean(session, realm, user, (String) this.attributes.get(OTPFormAuthenticator.SELECTED_OTP_CREDENTIAL_ID)));
+                setPageTitleIfDefined("loginResetOtpPageTitle", messagesBundle, locale);
                 break;
             case REGISTER:
                 RegisterBean rb = new RegisterBean(formData, session);
@@ -345,6 +350,21 @@ public class FreeMarkerLoginFormsProvider implements LoginFormsProvider {
             case LOGOUT_CONFIRM:
                 attributes.put("logoutConfirm", new LogoutConfirmBean(accessCode, authenticationSession));
                 attributes.put("title", getMessage("logoutConfirmTitle"));
+                break;
+            case LOGIN_RESET_PASSWORD:
+                setPageTitleIfDefined("loginResetPasswordPageTitle", messagesBundle, locale);
+                break;
+            case LOGIN_UPDATE_PASSWORD:
+                setPageTitleIfDefined("loginUpdatePasswordPageTitle", messagesBundle, locale);
+                break;
+            case LOGIN_PAGE_EXPIRED:
+                setPageTitleIfDefined("loginPageExpiredPageTitle", messagesBundle, locale);
+                break;
+            case INFO:
+                setPageTitleIfDefined("infoPageTitle", messagesBundle, locale);
+                break;
+            case ERROR:
+                setPageTitleIfDefined("errorPageTitle", messagesBundle, locale);
                 break;
         }
 
@@ -382,6 +402,49 @@ public class FreeMarkerLoginFormsProvider implements LoginFormsProvider {
         createCommonAttributes(theme, locale, messagesBundle, uriBuilder, null);
 
         return processTemplate(theme, form, locale);
+    }
+
+    /**
+     * Use the page-specific title when the theme or the realm defines its message. The realm display name is passed as
+     * parameter <code>{0}</code>, as for <code>loginTitle</code>. If the message is not defined, the title already set for the
+     * page is kept.
+     *
+     * @param key            message key of the page-specific title
+     * @param messagesBundle actual message bundle (provided by <code>handleThemeResources()</code>)
+     * @param locale         actual locale
+     */
+    protected void setPageTitleIfDefined(String key, Properties messagesBundle, Locale locale) {
+        if (realm == null || !messagesBundle.containsKey(key)) {
+            return;
+        }
+
+        String title = formatPageTitle(realm, key, messagesBundle, locale);
+        if (title != null) {
+            attributes.put("title", title);
+        }
+    }
+
+    /**
+     * Format a page-specific title message. References to other messages, such as <code>${key}</code>, are resolved
+     * in the message and in the realm display name. The realm display name is passed as parameter <code>{0}</code>,
+     * as for <code>loginTitle</code>. If the message is not a valid pattern, a warning is logged and
+     * <code>null</code> is returned, so that the page keeps its current title.
+     *
+     * @param realm          the realm
+     * @param key            message key of the page-specific title
+     * @param messagesBundle actual message bundle, which must contain the key
+     * @param locale         actual locale
+     * @return the formatted title, or <code>null</code> if the message is not a valid pattern
+     */
+    public static String formatPageTitle(RealmModel realm, String key, Properties messagesBundle, Locale locale) {
+        String displayName = TemplatingUtil.resolveVariables(new RealmBean(realm).getDisplayName(), messagesBundle);
+        String pattern = TemplatingUtil.resolveVariables(messagesBundle.getProperty(key), messagesBundle);
+        try {
+            return new MessageFormat(pattern, locale).format(new Object[] { displayName });
+        } catch (IllegalArgumentException e) {
+            logger.warnf("Ignoring invalid page title message '%s': %s", key, e.getMessage());
+            return null;
+        }
     }
 
     /**
