@@ -30,6 +30,37 @@ of the realm.
 
 Texts of these message bundles can be overwritten by realm-specific values, which are manageable by the UI and API.
 
+=== Page titles of the login theme
+
+By default, all pages of the login theme use the `loginTitle` message as the page title. To give one of the following pages its own title, add its
+message. As in `loginTitle`, `{0}` is replaced with the name of the realm. Pages without a page-specific message keep the default title.
+
+[%autowidth]
+|===
+|Page |Message key
+
+|One-time code entry |`loginOtpPageTitle`
+|One-time code setup |`loginConfigTotpPageTitle`
+|One-time code removal |`loginResetOtpPageTitle`
+|Recovery code entry |`loginRecoveryAuthnCodeInputPageTitle`
+|Recovery codes setup |`loginRecoveryAuthnCodeConfigPageTitle`
+|Reset password |`loginResetPasswordPageTitle`
+|Update password |`loginUpdatePasswordPageTitle`
+|Page expired |`loginPageExpiredPageTitle`
+|Information |`infoPageTitle`
+|Error |`errorPageTitle`
+|===
+
+The logout pages already have their own titles, set by the `frontchannel-logout.title` and `logoutConfirmTitle` messages.
+
+For example, to give the one-time code setup page and the one-time code entry page their own titles, add these messages:
+
+[source]
+----
+loginConfigTotpPageTitle=Set up two-factor authentication - {0}
+loginOtpPageTitle=Enter your one-time code - {0}
+----
+
 Each theme can have a locale specific description in the message key `theme.<theme-name>.<type>.description`.
 For example, use the key `theme.keycloak.v3.account.description` to provide a description for the `keycloak.v3` theme for the Account Console.
 As usual, the English message will be the fallback for all other languages.
