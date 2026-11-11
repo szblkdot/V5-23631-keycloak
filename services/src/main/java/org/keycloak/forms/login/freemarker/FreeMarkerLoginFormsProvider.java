@@ -348,7 +348,10 @@ public class FreeMarkerLoginFormsProvider implements LoginFormsProvider {
                 break;
         }
 
-        return processTemplate(theme, Templates.getTemplate(page), locale);
+        String templateName = Templates.getTemplate(page);
+        setPageTitle(templateName, messagesBundle, locale);
+
+        return processTemplate(theme, templateName, locale);
     }
 
     /**
@@ -380,8 +383,31 @@ public class FreeMarkerLoginFormsProvider implements LoginFormsProvider {
 
         UriBuilder uriBuilder = prepareBaseUriBuilder(false);
         createCommonAttributes(theme, locale, messagesBundle, uriBuilder, null);
+        setPageTitle(form, messagesBundle, locale);
 
         return processTemplate(theme, form, locale);
+    }
+
+    /**
+     * Use a page-specific title when the theme defines one. The message key is {@code loginTitle.} followed by the
+     * template name without the {@code .ftl} extension, for example {@code loginTitle.login-otp}. The realm display
+     * name is passed as parameter {@code {0}}, as for {@code loginTitle}. If the key is not defined, the title already
+     * set for the page is kept.
+     *
+     * @param templateName   name of the template to be rendered
+     * @param messagesBundle actual message bundle (provided by <code>handleThemeResources()</code>)
+     * @param locale         actual locale
+     */
+    protected void setPageTitle(String templateName, Properties messagesBundle, Locale locale) {
+        if (realm == null || templateName == null || !templateName.endsWith(".ftl")) {
+            return;
+        }
+
+        String key = "loginTitle." + templateName.substring(0, templateName.length() - 4);
+        if (messagesBundle.containsKey(key)) {
+            RealmBean realmBean = new RealmBean(realm);
+            attributes.put("title", formatMessage(new FormMessage(null, key, realmBean.getDisplayName()), messagesBundle, locale));
+        }
     }
 
     /**
